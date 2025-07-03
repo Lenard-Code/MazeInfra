@@ -1,6 +1,4 @@
-# Example variable definitions, copy to terraform.tfvars and fill in for use
-
-aws_region        = "us-east-1"
+aws_region        = "us-west-2"
 vpc_id            = "vpc-xxxxxxxx"
 subnet_id         = "subnet-xxxxxxxx"
 key_name          = "your-keypair"
