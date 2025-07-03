@@ -1,0 +1,16 @@
+#!/bin/bash
+apt-get update
+apt-get install -y nginx
+cat >/etc/nginx/sites-available/default <<EOF
+server {
+    listen 443 ssl;
+    ssl_certificate     /etc/ssl/certs/ssl-cert-snakeoil.pem;
+    ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
+    location / {
+        proxy_pass https://${next_hop_ip}:443;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+    }
+}
+EOF
+systemctl restart nginx
