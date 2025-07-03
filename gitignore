@@ -1,0 +1,12 @@
+# Ignore Terraform state
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Ansible artifacts
+*.retry
