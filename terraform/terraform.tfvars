@@ -1,0 +1,10 @@
+aws_region        = "us-west-2"
+vpc_id            = "vpc-9f0226e6"
+subnet_id         = "subnet-278b0a5e"
+key_name          = "CD-MazeRunner"
+proxy_instance_type = "t3.micro"
+layer1_count      = 10
+layer2_count      = 4
+layer2_private_ips = ["172.31.27.156", "172.31.27.146", "172.31.27.136", "172.31.27.126"]
+c2_private_ip     = "172.31.27.166"
+discord_webhook = "https://discord.com/api/webhooks/1390532672773689424/0X2Hn_UEBWILUsui9ijwlvw3gaPbMAQxlIiIb1hvgu3ZQnewh3z3I_1SfYGe4jL-V5z0"
