@@ -1,6 +1,11 @@
 #!/bin/bash
+set -e
+
+# Install essentials
 apt-get update
-apt-get install -y nginx
+apt-get install -y nginx squid python3 python3-pip cron
+
+# --- NGINX CONFIGURATION (unchanged) ---
 cat >/etc/nginx/sites-available/default <<EOF
 server {
     listen 443 ssl;
@@ -14,3 +19,65 @@ server {
 }
 EOF
 systemctl restart nginx
+systemctl enable nginx
+
+# --- SQUID CONFIGURATION ---
+LAYER_TYPE="${layer_type}"  # Set by Terraform: "layer1" or "layer2"
+
+if [ "$LAYER_TYPE" = "layer1" ]; then
+    # Layer 1: Next hops are the Layer 2 IPs (random selection)
+    NEXT_HOPS_FILE="/etc/squid/next_hops.list"
+    cat >"$NEXT_HOPS_FILE" <<EOF
+${next_hop_ips}
+EOF
+
+    cat >/etc/squid/squid.conf <<EOF
+http_port 3128
+
+# Layer 1: Define cache peers for random selection (round-robin)
+$(awk '{print "cache_peer " $1 " parent 3128 0 no-query round-robin"}' $NEXT_HOPS_FILE)
+
+acl all src 0.0.0.0/0
+http_access allow all
+never_direct allow all
+
+access_log /var/log/squid/access.log
+cache_log /var/log/squid/cache.log
+EOF
+
+elif [ "$LAYER_TYPE" = "layer2" ]; then
+    # Layer 2: Forward all traffic to C2 server
+    C2_IP="${c2_ip}"  # Set by Terraform
+
+    cat >/etc/squid/squid.conf <<EOF
+http_port 3128
+
+# Layer 2: Forward everything to C2
+cache_peer $C2_IP parent 3128 0 no-query default
+
+acl all src 0.0.0.0/0
+http_access allow all
+never_direct allow all
+
+access_log /var/log/squid/access.log
+cache_log /var/log/squid/cache.log
+EOF
+
+fi
+
+systemctl restart squid
+systemctl enable squid
+
+# --- CRON SETUP FOR DISCORD BOT (unchanged) ---
+mkdir -p /home/ubuntu/scripts
+touch /home/ubuntu/scripts/discord_bot.py
+chown -R ubuntu:ubuntu /home/ubuntu/scripts
+chmod 700 /home/ubuntu/scripts
+chmod 700 /home/ubuntu/scripts/discord_bot.py
+
+systemctl enable cron
+systemctl start cron
+
+DISCORD_SCRIPT="/home/ubuntu/scripts/discord_bot.py"
+CRON_JOB="*/5 * * * * /usr/bin/python3 $DISCORD_SCRIPT >> /home/ubuntu/discord_cron.log 2>&1"
+crontab -u ubuntu -l 2>/dev/null | grep -v "$DISCORD_SCRIPT" | { cat; echo "$CRON_JOB"; } | crontab -u ubuntu -
